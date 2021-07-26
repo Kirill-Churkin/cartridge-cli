@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/tarantool/cartridge-cli/cli/common"
@@ -28,6 +29,8 @@ var (
 			`^(?P<Major>\d+)\.(?P<Minor>\d+)\.(?P<Patch>\d+)-(?P<Count>\d+)-(?P<Hash>g\w+)$`,
 		),
 	}
+
+	debianVersion = "1"
 )
 
 func normalizeVersion(ctx *context.Ctx) error {
@@ -108,33 +111,59 @@ func detectVersion(ctx *context.Ctx) error {
 	return nil
 }
 
+func getPackageSuffix(ctx *context.Ctx) string {
+	var suffix string
+	if ctx.Pack.Suffix != "" {
+		suffix = fmt.Sprintf("-%s", ctx.Pack.Suffix)
+	}
+
+	return suffix
+}
+
+func getRpmPackageNameBody(ctx *context.Ctx) string {
+	return fmt.Sprintf(
+		"%s-%s%s.%s",
+		ctx.Project.Name,
+		ctx.Pack.VersionRelease,
+		getPackageSuffix(ctx),
+		runtime.GOARCH,
+	)
+}
+
+func getDebPackageNameBody(ctx *context.Ctx) string {
+	return fmt.Sprintf(
+		"%s_%s-%s%s_%s",
+		ctx.Project.Name,
+		ctx.Pack.VersionRelease,
+		debianVersion,
+		getPackageSuffix(ctx),
+		runtime.GOARCH,
+	)
+}
+
+// TGZ and Docker
+func getCommonPackageNameBody(ctx *context.Ctx) string {
+	return fmt.Sprintf("%s-%s%s", ctx.Project.Name, ctx.Pack.VersionRelease, getPackageSuffix(ctx))
+}
+
 func getPackageFullname(ctx *context.Ctx) string {
 	ext, found := extByType[ctx.Pack.Type]
 	if !found {
 		panic(project.InternalError("Unknown type: %s", ctx.Pack.Type))
 	}
 
-	packageFullname := fmt.Sprintf(
-		"%s-%s",
-		ctx.Project.Name,
-		ctx.Pack.VersionRelease,
-	)
+	var packageFullname string
 
-	if ctx.Pack.Suffix != "" {
-		packageFullname = fmt.Sprintf(
-			"%s-%s",
-			packageFullname,
-			ctx.Pack.Suffix,
-		)
+	switch ctx.Pack.Type {
+	case RpmType:
+		packageFullname = getRpmPackageNameBody(ctx)
+	case DebType:
+		packageFullname = getDebPackageNameBody(ctx)
+	default:
+		packageFullname = getCommonPackageNameBody(ctx)
 	}
 
-	packageFullname = fmt.Sprintf(
-		"%s.%s",
-		packageFullname,
-		ext,
-	)
-
-	return packageFullname
+	return fmt.Sprintf("%s.%s", packageFullname, ext)
 }
 
 func getImageTags(ctx *context.Ctx) []string {

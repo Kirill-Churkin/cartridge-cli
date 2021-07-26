@@ -1,6 +1,8 @@
 package pack
 
 import (
+	"fmt"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,10 +28,10 @@ func TestGetPackageFullname(t *testing.T) {
 	assert.Equal("myapp-1.2.3-4.tar.gz", getPackageFullname(&ctx))
 
 	ctx.Pack.Type = RpmType
-	assert.Equal("myapp-1.2.3-4.rpm", getPackageFullname(&ctx))
+	assert.Equal(fmt.Sprintf("myapp-1.2.3-4.%s.rpm", runtime.GOARCH), getPackageFullname(&ctx))
 
 	ctx.Pack.Type = DebType
-	assert.Equal("myapp-1.2.3-4.deb", getPackageFullname(&ctx))
+	assert.Equal(fmt.Sprintf("myapp_1.2.3-4-1_%s.deb", runtime.GOARCH), getPackageFullname(&ctx))
 
 	// w/ suffix
 	ctx.Project.Name = "myapp"
@@ -40,9 +42,9 @@ func TestGetPackageFullname(t *testing.T) {
 	assert.Equal("myapp-1.2.3-4-dev.tar.gz", getPackageFullname(&ctx))
 
 	ctx.Pack.Type = RpmType
-	assert.Equal("myapp-1.2.3-4-dev.rpm", getPackageFullname(&ctx))
+	assert.Equal(fmt.Sprintf("myapp-1.2.3-4-dev.%s.rpm", runtime.GOARCH), getPackageFullname(&ctx))
 	ctx.Pack.Type = DebType
-	assert.Equal("myapp-1.2.3-4-dev.deb", getPackageFullname(&ctx))
+	assert.Equal(fmt.Sprintf("myapp_1.2.3-4-1-dev_%s.deb", runtime.GOARCH), getPackageFullname(&ctx))
 }
 
 func TestGetImageTags(t *testing.T) {
