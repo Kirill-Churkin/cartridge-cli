@@ -120,50 +120,52 @@ func getPackageSuffix(ctx *context.Ctx) string {
 	return suffix
 }
 
-func getRpmPackageNameBody(ctx *context.Ctx) string {
+func getRpmPackageFullname(ctx *context.Ctx) string {
 	return fmt.Sprintf(
-		"%s-%s%s.%s",
+		"%s-%s%s.%s.%s",
 		ctx.Project.Name,
 		ctx.Pack.VersionRelease,
 		getPackageSuffix(ctx),
 		runtime.GOARCH,
+		extByType[ctx.Pack.Type],
 	)
 }
 
-func getDebPackageNameBody(ctx *context.Ctx) string {
+func getDebPackageFullname(ctx *context.Ctx) string {
 	return fmt.Sprintf(
-		"%s_%s-%s%s_%s",
+		"%s_%s-%s%s_%s.%s",
 		ctx.Project.Name,
 		ctx.Pack.VersionRelease,
 		debianVersion,
 		getPackageSuffix(ctx),
 		runtime.GOARCH,
+		extByType[ctx.Pack.Type],
 	)
 }
 
-// TGZ and Docker
-func getCommonPackageNameBody(ctx *context.Ctx) string {
-	return fmt.Sprintf("%s-%s%s", ctx.Project.Name, ctx.Pack.VersionRelease, getPackageSuffix(ctx))
+func getTgzPackageFullname(ctx *context.Ctx) string {
+	return fmt.Sprintf(
+		"%s-%s%s.%s",
+		ctx.Project.Name,
+		ctx.Pack.VersionRelease,
+		getPackageSuffix(ctx),
+		extByType[ctx.Pack.Type],
+	)
 }
 
 func getPackageFullname(ctx *context.Ctx) string {
-	ext, found := extByType[ctx.Pack.Type]
-	if !found {
+	if _, found := extByType[ctx.Pack.Type]; !found {
 		panic(project.InternalError("Unknown type: %s", ctx.Pack.Type))
 	}
 
-	var packageFullname string
-
 	switch ctx.Pack.Type {
 	case RpmType:
-		packageFullname = getRpmPackageNameBody(ctx)
+		return getRpmPackageFullname(ctx)
 	case DebType:
-		packageFullname = getDebPackageNameBody(ctx)
+		return getDebPackageFullname(ctx)
 	default:
-		packageFullname = getCommonPackageNameBody(ctx)
+		return getTgzPackageFullname(ctx)
 	}
-
-	return fmt.Sprintf("%s.%s", packageFullname, ext)
 }
 
 func getImageTags(ctx *context.Ctx) []string {

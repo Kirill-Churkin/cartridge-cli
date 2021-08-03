@@ -21,30 +21,30 @@ func TestGetPackageFullname(t *testing.T) {
 
 	// w/o suffix
 	ctx.Project.Name = "myapp"
-	ctx.Pack.VersionRelease = "1.2.3-4"
+	ctx.Pack.VersionRelease = "1.2.3.g480c55b67"
 	ctx.Pack.Suffix = ""
 
 	ctx.Pack.Type = TgzType
-	assert.Equal("myapp-1.2.3-4.tar.gz", getPackageFullname(&ctx))
+	assert.Equal("myapp-1.2.3.g480c55b67.tar.gz", getPackageFullname(&ctx))
 
 	ctx.Pack.Type = RpmType
-	assert.Equal(fmt.Sprintf("myapp-1.2.3-4.%s.rpm", runtime.GOARCH), getPackageFullname(&ctx))
+	assert.Equal(fmt.Sprintf("myapp-1.2.3.g480c55b67.%s.rpm", runtime.GOARCH), getPackageFullname(&ctx))
 
 	ctx.Pack.Type = DebType
-	assert.Equal(fmt.Sprintf("myapp_1.2.3-4-1_%s.deb", runtime.GOARCH), getPackageFullname(&ctx))
+	assert.Equal(fmt.Sprintf("myapp_1.2.3.g480c55b67-1_%s.deb", runtime.GOARCH), getPackageFullname(&ctx))
 
 	// w/ suffix
 	ctx.Project.Name = "myapp"
-	ctx.Pack.VersionRelease = "1.2.3-4"
+	ctx.Pack.VersionRelease = "1.2.3.g480c55b67"
 	ctx.Pack.Suffix = "dev"
 
 	ctx.Pack.Type = TgzType
-	assert.Equal("myapp-1.2.3-4-dev.tar.gz", getPackageFullname(&ctx))
+	assert.Equal("myapp-1.2.3.g480c55b67-dev.tar.gz", getPackageFullname(&ctx))
 
 	ctx.Pack.Type = RpmType
-	assert.Equal(fmt.Sprintf("myapp-1.2.3-4-dev.%s.rpm", runtime.GOARCH), getPackageFullname(&ctx))
+	assert.Equal(fmt.Sprintf("myapp-1.2.3.g480c55b67-dev.%s.rpm", runtime.GOARCH), getPackageFullname(&ctx))
 	ctx.Pack.Type = DebType
-	assert.Equal(fmt.Sprintf("myapp_1.2.3-4-1-dev_%s.deb", runtime.GOARCH), getPackageFullname(&ctx))
+	assert.Equal(fmt.Sprintf("myapp_1.2.3.g480c55b67-1-dev_%s.deb", runtime.GOARCH), getPackageFullname(&ctx))
 }
 
 func TestGetImageTags(t *testing.T) {
