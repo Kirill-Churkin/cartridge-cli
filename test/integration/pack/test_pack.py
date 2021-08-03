@@ -2179,3 +2179,27 @@ def test_net_msg_max_invalid_value(cartridge_cmd, project_without_dependencies, 
     rc, output = run_command_and_get_output(cmd, cwd=tmpdir)
     assert rc == 1
     assert error_message in output
+
+
+@pytest.mark.parametrize('pack_format', ['tgz'])
+def test_ignore_tmp_dir_content(cartridge_cmd, project_without_dependencies, pack_format, tmpdir):
+    project = project_without_dependencies
+
+    for dirname in ["data", "log", "run"]:
+        dirpath = os.path.join(project.path, "tmp", dirname)
+        os.mkdir(dirpath)
+
+        with open(os.path.join(dirpath, "tempfile"), "w") as f:
+            f.write("test text")
+
+        os.chmod(os.path.join(dirpath, "tempfile"), 0000)
+
+    cmd = [cartridge_cmd, "pack", pack_format, project.path]
+    assert subprocess.run(cmd, cwd=project.path).returncode == 0
+
+    archive_path = find_archive(project.path, project.name, 'tar.gz')
+    with tarfile.open(archive_path) as archive:
+        archive.extractall(path=os.path.join(tmpdir, 'extract_dir'))
+        items = os.listdir(os.path.join(tmpdir, 'extract_dir', project.name, "tmp"))
+        assert len(items) == 1
+        assert items[0] == ".keep"

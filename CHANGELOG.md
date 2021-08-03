@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Ability to reverse search in ``cartridge enter`` and ``cartridge connect`` commands.
 - Added support for functionality from Golang 1.17.
 
+### Changed
+
+- ``cartridge pack`` command now ignores the contents of the default ``run_dir``
+  (``tmp/run``), ``data_dir`` (``tmp/data``) and ``log_dir`` (``tmp/log``) directories.
+
 ## [2.10.0] - 2021-07-28
 
 ### Added

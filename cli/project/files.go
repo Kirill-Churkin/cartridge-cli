@@ -15,10 +15,11 @@ const (
 	defaultEntrypoint           = "init.lua"
 	defaultStateboardEntrypoint = "stateboard.init.lua"
 
+	defaultLocalRunDir  = "tmp/run"
+	defaultLocalDataDir = "tmp/data"
+	defaultLocalLogDir  = "tmp/log"
+
 	defaultLocalConfPath = "instances.yml"
-	defaultLocalRunDir   = "tmp/run"
-	defaultLocalDataDir  = "tmp/data"
-	defaultLocalLogDir   = "tmp/log"
 	defaultLocalAppsDir  = ""
 
 	defaultConfPath       = "/etc/tarantool/conf.d/"
@@ -279,6 +280,12 @@ func SetLocalRunningPaths(ctx *context.Ctx) error {
 	}
 
 	return nil
+}
+
+// GetDefaultLocalRunningPaths returns a list of default
+// local paths RunDir, DataDir, LogDir.
+func GetDefaultLocalRunningPaths() []string {
+	return []string{defaultLocalRunDir, defaultLocalDataDir, defaultLocalLogDir}
 }
 
 // SetSystemRunningPaths fills {Run,Data,Log,Conf}Dir

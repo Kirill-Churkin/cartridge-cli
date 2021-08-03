@@ -16,6 +16,7 @@ import (
 	"github.com/tarantool/cartridge-cli/cli/build"
 	"github.com/tarantool/cartridge-cli/cli/common"
 	"github.com/tarantool/cartridge-cli/cli/context"
+	"github.com/tarantool/cartridge-cli/cli/project"
 )
 
 const (
@@ -325,6 +326,8 @@ func updateCache(paths CachePaths, ctx *context.Ctx) error {
 }
 
 func copyProjectFiles(dst string, ctx *context.Ctx) error {
+	defaultLocalPaths := project.GetDefaultLocalRunningPaths()
+
 	err := copy.Copy(ctx.Project.Path, dst, copy.Options{
 		Skip: func(src string) (bool, error) {
 			if strings.HasPrefix(src, fmt.Sprintf("%s/", ctx.Cli.CartridgeTmpDir)) {
@@ -334,6 +337,15 @@ func copyProjectFiles(dst string, ctx *context.Ctx) error {
 			relPath, err := filepath.Rel(ctx.Project.Path, src)
 			if err != nil {
 				return false, fmt.Errorf("Failed to get file rel path: %s", err)
+			}
+
+			// We need to ignore the run_dir, data_dir and log_dir folders because it
+			// contains the files of the running instance, which can then block application pack.
+			// More details: https://github.com/tarantool/cartridge-cli/issues/494
+			for _, path := range defaultLocalPaths {
+				if strings.HasPrefix(relPath, path) {
+					return true, nil
+				}
 			}
 
 			if relPath == ".rocks" || strings.HasPrefix(relPath, ".rocks/") {
