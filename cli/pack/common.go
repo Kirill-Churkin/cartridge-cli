@@ -121,6 +121,7 @@ func getPackageSuffix(ctx *context.Ctx) string {
 }
 
 func getRpmPackageFullname(ctx *context.Ctx) string {
+	// https://www.thegeekdiary.com/understanding-rpm-versions-and-naming-schemes/
 	return fmt.Sprintf(
 		"%s-%s%s.%s.%s",
 		ctx.Project.Name,
@@ -132,6 +133,7 @@ func getRpmPackageFullname(ctx *context.Ctx) string {
 }
 
 func getDebPackageFullname(ctx *context.Ctx) string {
+	// https://www.debian.org/doc/manuals/debian-reference/ch02.en.html#_debian_package_file_names
 	return fmt.Sprintf(
 		"%s_%s-%s%s_%s.%s",
 		ctx.Project.Name,
