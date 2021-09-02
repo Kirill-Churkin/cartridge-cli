@@ -62,17 +62,17 @@ func addTarantoolDepIfNeeded(ctx *context.Ctx) error {
 		return nil
 	}
 
-	var tarantoolVersion string
-	if ctx.Pack.Type == pack.RpmType {
-		tarantoolVersion = strings.SplitN(ctx.Tarantool.TarantoolVersion, "-", 2)[0]
-	} else if ctx.Pack.Type == pack.DebType {
-		tarantoolVersion = ctx.Tarantool.TarantoolVersion
+	tarantoolMinVersion, err := pack.GetTarantoolMinVersion(ctx.Tarantool.TarantoolVersion, ctx.Pack.Type)
+	if err != nil {
+		return fmt.Errorf("Failed to get minimum Tarantool version: %s", err)
 	}
 
-	if err := ctx.Pack.Deps.AddTarantool(tarantoolVersion); err != nil {
-		return fmt.Errorf("Failed to get tarantool dependency: %s", err)
+	tarantoolMaxVersion, err := common.GetNextMajorVersion(ctx.Tarantool.TarantoolVersion)
+	if err != nil {
+		return fmt.Errorf("Failed to get maximum Tarantool version: %s", err)
 	}
 
+	ctx.Pack.Deps.AddTarantool(tarantoolMinVersion, tarantoolMaxVersion)
 	return nil
 }
 

@@ -529,7 +529,8 @@ def assert_dependencies_deb(filename, deps, tarantool_versions, tmpdir):
 
     rc, output = run_command_and_get_output(cmd, cwd=tmpdir)
     assert rc == 0
-    assert all(dep in output for dep in deps)
+    # Remove hash from dependencies
+    assert all(dep.split('-')[0] in output for dep in deps)
 
 
 def assert_tarantool_dependency_deb(filename):
@@ -539,7 +540,9 @@ def assert_tarantool_dependency_deb(filename):
         depends_str = re.search('Depends: (.*)', control_info)
         assert depends_str is not None
 
-        min_version = re.findall(r'\d+\.\d+\.\d+-\d+-\S+', tarantool_version())[0]
+        # Convert min_version to internal version representation in DEB packages
+        min_version = get_converted_tarantool_version(
+            re.findall(r'\d+\.\d+\.\d+[-\w]*', tarantool_version())[0], "deb")
         max_version = str(int(re.findall(r'\d+', tarantool_version())[0]) + 1)
 
         deps = depends_str.group(1)
@@ -566,7 +569,7 @@ def assert_dependencies_rpm(filename, deps, tarantool_versions):
         for i, dep in enumerate(deps):
             assert rpm.headers['requirename'][i].decode('ascii') == dep[0]
             assert rpm.headers['requireflags'][i] == dep[1]
-            assert rpm.headers['requireversion'][i].decode('ascii') == dep[2]
+            assert rpm.headers['requireversion'][i].decode('ascii').startswith(dep[2])
 
 
 def assert_tarantool_dependency_rpm(filename):
@@ -579,7 +582,9 @@ def assert_tarantool_dependency_rpm(filename):
         assert len(rpm.headers['requireversion']) == 2
         assert len(rpm.headers['requireflags']) == 2
 
-        min_version = re.findall(r'\d+\.\d+\.\d+', tarantool_version())[0]
+        # Convert min_version to internal version representation in RPM packages
+        min_version = get_converted_tarantool_version(
+            re.findall(r'\d+\.\d+\.\d+-\w+', tarantool_version())[0], "rpm")
         max_version = str(int(re.findall(r'\d+', tarantool_version())[0]) + 1)
 
         assert rpm.headers['requirename'][0].decode('ascii') == 'tarantool'
@@ -589,6 +594,17 @@ def assert_tarantool_dependency_rpm(filename):
         assert rpm.headers['requirename'][1].decode('ascii') == 'tarantool'
         assert rpm.headers['requireversion'][1].decode('ascii') == max_version
         assert rpm.headers['requireflags'][1] == 0x02  # <
+
+
+def get_converted_tarantool_version(version, package_type):
+    major, minor, _ = version.split('.', 2)
+    if (int(major) >= 2 and int(minor) > 8) or int(major) > 2:
+        return f"{version.replace('-', '~', 1).split('-', 1)[0]}-1"
+
+    if package_type == "rpm":
+        return version.split('-', 1)[0]
+
+    return version
 
 
 def assert_all_lines_in_content(filename, content):

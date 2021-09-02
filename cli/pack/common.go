@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	goVersion "github.com/hashicorp/go-version"
 	"github.com/tarantool/cartridge-cli/cli/common"
 	"github.com/tarantool/cartridge-cli/cli/context"
 	"github.com/tarantool/cartridge-cli/cli/project"
@@ -29,6 +30,40 @@ var (
 		),
 	}
 )
+
+func GetTarantoolMinVersion(version string, packType string) (string, error) {
+	var err error
+	var current, border *goVersion.Version
+
+	if border, err = goVersion.NewVersion("2.9.0-alpha"); err != nil {
+		return "", err
+	}
+
+	if current, err = goVersion.NewVersion(version); err != nil {
+		return "", err
+	}
+
+	// Starting from 2.9.0 (since the introduction of new versioning),
+	// the version format has changed.
+	// It needs to be converted to the format in RPM / DEB packages.
+	if current.GreaterThanOrEqual(border) {
+		// We have to convert this format (for example):
+		// 2.10.0-beta1-0-g7da4b1438
+		// To this:
+		// 2.10.0~beta1-1
+		replaced := strings.Replace(version, "-", "~", 1)
+		replaced = strings.SplitN(replaced, "-", 2)[0]
+		return fmt.Sprintf("%s-1", replaced), nil
+	}
+
+	// RPM format
+	if packType == RpmType {
+		return strings.SplitN(version, "-", 2)[0], nil
+	}
+
+	// Deb format
+	return version, nil
+}
 
 func normalizeVersion(ctx *context.Ctx) error {
 	var major = "0"
