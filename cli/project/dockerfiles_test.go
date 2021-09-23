@@ -95,7 +95,7 @@ ENV PATH="/usr/share/tarantool/sdk:${PATH}"
 	ctx.Tarantool.TarantoolVersion = "2.1.42"
 
 	expLayers = `### Install opensource Tarantool
-RUN curl -L https://tarantool.io/installer.sh | VER=2.1 bash \
+RUN curl -L https://tarantool.io/installer.sh | VER=2.1 bash -s -- --type release \
     && yum -y install tarantool-devel
 `
 
@@ -108,7 +108,7 @@ RUN curl -L https://tarantool.io/installer.sh | VER=2.1 bash \
 	ctx.Tarantool.TarantoolVersion = "1.10.42"
 
 	expLayers = `### Install opensource Tarantool
-RUN curl -L https://tarantool.io/installer.sh | VER=1.10 bash \
+RUN curl -L https://tarantool.io/installer.sh | VER=1.10 bash -s -- --type release \
     && yum -y install tarantool-devel
 `
 
@@ -227,7 +227,7 @@ func TestGetBuildImageDockerfileTemplateOpensource(t *testing.T) {
 RUN yum install -y git-core gcc gcc-c++ make cmake unzip
 
 ### Install opensource Tarantool
-RUN curl -L https://tarantool.io/installer.sh | VER=1.10 bash \
+RUN curl -L https://tarantool.io/installer.sh | VER=1.10 bash -s -- --type release \
     && yum -y install tarantool-devel
 
 ### Wrap user
@@ -264,7 +264,7 @@ RUN yum install -y zip
 RUN yum install -y git-core gcc gcc-c++ make cmake unzip
 
 ### Install opensource Tarantool
-RUN curl -L https://tarantool.io/installer.sh | VER=1.10 bash \
+RUN curl -L https://tarantool.io/installer.sh | VER=1.10 bash -s -- --type release \
     && yum -y install tarantool-devel
 
 ### Wrap user
@@ -428,7 +428,7 @@ RUN groupadd -r -g {{ .TarantoolGID }} tarantool \
         -c "Tarantool Server" tarantool
 
 ### Install opensource Tarantool
-RUN curl -L https://tarantool.io/installer.sh | VER=1.10 bash \
+RUN curl -L https://tarantool.io/installer.sh | VER=1.10 bash -s -- --type release \
     && yum -y install tarantool-devel
 
 ### Prepare for runtime

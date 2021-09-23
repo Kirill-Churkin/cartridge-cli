@@ -1394,3 +1394,19 @@ def get_response_data(response):
     assert 'errors' not in response_json, response_json
 
     return response_json['data']
+
+
+def get_tarantool_installer_cmd(package_manager):
+    short_version = tarantool_short_version()
+    major, minor = list(map(int, short_version.split(".")))
+
+    tarantool_type = "release"
+    if (major >= 2 and minor > 8) or major > 2:
+        short_version = major
+        # Is tarantool pre-release
+        if any(postfix in tarantool_version() for postfix in ["-alpha", "-beta", "-rc"]):
+            tarantool_type = "pre-release"
+
+    return f"curl -L https://tarantool.io/installer.sh | \
+        VER={short_version} bash -s --  --type {tarantool_type} \
+        && {package_manager} install -y tarantool"

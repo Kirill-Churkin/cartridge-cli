@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/apex/log"
@@ -21,7 +22,8 @@ func init() {
 }
 
 type opensourseCtx struct {
-	MajorMinorVersion string
+	Type    string
+	Version string
 }
 
 type enterpriseCtx struct {
@@ -169,7 +171,8 @@ func getInstallTarantoolLayers(ctx *context.Ctx) (string, error) {
 		tmplStr := installTarantoolOpensourceLayers
 		installTarantoolLayers, err = templates.GetTemplatedStr(&tmplStr,
 			opensourseCtx{
-				MajorMinorVersion: common.GetMajorMinorVersion(ctx.Tarantool.TarantoolVersion),
+				Type:    getInstallerType(ctx.Tarantool.TarantoolVersion),
+				Version: getVersionForTarantoolInstaller(ctx.Tarantool.TarantoolVersion),
 			},
 		)
 
@@ -179,6 +182,42 @@ func getInstallTarantoolLayers(ctx *context.Ctx) (string, error) {
 	}
 
 	return installTarantoolLayers, nil
+}
+
+func getVersionForTarantoolInstaller(version string) string {
+	parts := strings.SplitN(version, ".", 3)
+	major, _ := strconv.Atoi(parts[0])
+	minor, _ := strconv.Atoi(parts[1])
+
+	if major > 2 || (major >= 2 && minor > 8) {
+		return fmt.Sprintf("%d", major)
+	}
+
+	return fmt.Sprintf("%d.%d", major, minor)
+}
+
+func getInstallerType(version string) string {
+	parts := strings.SplitN(version, ".", 3)
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return ""
+	}
+
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return ""
+	}
+
+	if (major >= 2 && minor > 8) || major > 2 {
+		preReleasePostfix := []string{"-alpha", "-beta", "-rc"}
+		for _, postfix := range preReleasePostfix {
+			if strings.Contains(version, postfix) {
+				return "pre-release"
+			}
+		}
+	}
+
+	return "release"
 }
 
 const (
@@ -224,7 +263,7 @@ ENV TARANTOOL_INSTANCE_NAME=default
 `
 
 	installTarantoolOpensourceLayers = `### Install opensource Tarantool
-RUN curl -L https://tarantool.io/installer.sh | VER={{ .MajorMinorVersion }} bash \
+RUN curl -L https://tarantool.io/installer.sh | VER={{ .Version }} bash -s -- --type {{ .Type }} \
     && yum -y install tarantool-devel
 `
 
