@@ -1,7 +1,9 @@
 package create
 
 import (
+	"embed"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/tarantool/cartridge-cli/cli/common"
@@ -12,6 +14,10 @@ import (
 	"github.com/tarantool/cartridge-cli/cli/context"
 	"github.com/tarantool/cartridge-cli/cli/create/templates"
 )
+
+// TODO: add flag when https://github.com/golang/go/issues/43854 is released.
+//go:embed templates/cartridge/*
+var createCartridgeTemplateFS embed.FS
 
 // Run creates a project in ctx.Project.Path
 func Run(ctx *context.Ctx) error {
@@ -37,7 +43,7 @@ func Run(ctx *context.Ctx) error {
 	if ctx.Create.From == "" {
 		switch ctx.Create.Template {
 		case "cartridge":
-			ctx.Create.TemplateFS = CreateCartridgeTemplateFS
+			ctx.Create.TemplateFS = http.FS(createCartridgeTemplateFS)
 		default:
 			return fmt.Errorf("Invalid template name: %s", ctx.Create.Template)
 		}
