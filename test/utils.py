@@ -1,6 +1,7 @@
 import glob
 import gzip
 import json
+import logging
 import os
 import re
 import shutil
@@ -1394,3 +1395,10 @@ def get_response_data(response):
     assert 'errors' not in response_json, response_json
 
     return response_json['data']
+
+
+def consume_lines(port, pipe):
+    logger = logging.getLogger(f'localhost:{port}')
+    with pipe:
+        for line in iter(pipe.readline, b''):
+            logger.warning(line.rstrip().decode('utf-8'))
