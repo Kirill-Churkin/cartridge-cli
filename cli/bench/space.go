@@ -5,6 +5,8 @@ import (
 	"reflect"
 
 	"github.com/FZambia/tarantool"
+	"github.com/tarantool/cartridge-cli/cli/common"
+	"github.com/tarantool/cartridge-cli/cli/context"
 )
 
 // createBenchmarkSpace creates benchmark space with formatting and primary index.
@@ -53,4 +55,13 @@ func dropBenchmarkSpace(tarantoolConnection *tarantool.Connection) error {
 		return err
 	}
 	return nil
+}
+
+func fillBenchmarkSpace(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection) {
+	for i := 0; i < 1000000; i++ {
+		tarantoolConnection.Exec(
+			tarantool.Insert(
+				benchSpaceName,
+				[]interface{}{common.RandomString(ctx.KeySize), common.RandomString(ctx.DataSize)}))
+	}
 }

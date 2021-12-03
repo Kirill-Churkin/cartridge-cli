@@ -184,4 +184,7 @@ type BenchCtx struct {
 	Duration             int    // Duration describes test duration in seconds.
 	KeySize              int    // DataSize describes the size of key part of benchmark data (bytes).
 	DataSize             int    // DataSize describes the size of value part of benchmark data (bytes).
+	InsertCount          int
+	SelectCount          int
+	UpdateCount          int
 }

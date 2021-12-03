@@ -9,9 +9,10 @@ import (
 	"github.com/tarantool/cartridge-cli/cli/context"
 )
 
-var (
+const (
 	benchSpaceName             = "__benchmark_space__"
 	benchSpacePrimaryIndexName = "__bench_primary_key__"
+	requestTypesCount          = 3
 )
 
 // printConfig output formatted config parameters.

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/FZambia/tarantool"
-	"github.com/tarantool/cartridge-cli/cli/common"
 	"github.com/tarantool/cartridge-cli/cli/context"
 )
 
@@ -39,29 +38,25 @@ func incrementRequest(err error, results *Results) {
 }
 
 // requestsLoop continuously executes the insert query until the benchmark time runs out.
-func requestsLoop(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection, results *Results, backgroundCtx bctx.Context) {
+func requestsLoop(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection, requestsSequence RequestsSequence, results *Results, backgroundCtx bctx.Context) {
 	for {
 		select {
 		case <-backgroundCtx.Done():
 			return
 		default:
-			_, err := tarantoolConnection.Exec(
-				tarantool.Insert(
-					benchSpaceName,
-					[]interface{}{common.RandomString(ctx.KeySize), common.RandomString(ctx.DataSize)}))
-			incrementRequest(err, results)
+			requestsSequence.getNext().execute()
 		}
 	}
 }
 
 // connectionLoop runs "ctx.SimultaneousRequests" requests execution threads through the same connection.
-func connectionLoop(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection, results *Results, backgroundCtx bctx.Context) {
+func connectionLoop(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection, requestsSequence RequestsSequence, results *Results, backgroundCtx bctx.Context) {
 	var connectionWait sync.WaitGroup
 	for i := 0; i < ctx.SimultaneousRequests; i++ {
 		connectionWait.Add(1)
 		go func() {
 			defer connectionWait.Done()
-			requestsLoop(ctx, tarantoolConnection, results, backgroundCtx)
+			requestsLoop(ctx, tarantoolConnection, requestsSequence, results, backgroundCtx)
 		}()
 	}
 
@@ -90,6 +85,10 @@ func Run(ctx context.BenchCtx) error {
 		return err
 	}
 
+	if ctx.InsertCount == 0 {
+		fillBenchmarkSpace(ctx, tarantoolConnection)
+	}
+
 	/// Сreate a "connectionPool" before starting the benchmark to exclude the connection establishment time from measurements.
 	connectionPool := make([]*tarantool.Connection, ctx.Connections)
 	for i := 0; i < ctx.Connections; i++ {
@@ -110,6 +109,7 @@ func Run(ctx context.BenchCtx) error {
 	backgroundCtx, cancel := bctx.WithCancel(bctx.Background())
 	var waitGroup sync.WaitGroup
 	results := Results{}
+	getRandomTupleCommand := fmt.Sprintf("box.space.%s.index.%s:random", benchSpaceName, benchSpacePrimaryIndexName)
 
 	startTime := time.Now()
 	timer := time.NewTimer(time.Duration(ctx.Duration * int(time.Second)))
@@ -119,7 +119,13 @@ func Run(ctx context.BenchCtx) error {
 		waitGroup.Add(1)
 		go func(connection *tarantool.Connection) {
 			defer waitGroup.Done()
-			connectionLoop(ctx, connection, &results, backgroundCtx)
+			requestsSequence := RequestsSequence{
+				[requestTypesCount]RequestsPool{
+					{InsertRequest{ctx, connection, &results}, ctx.InsertCount},
+					{SelectRequest{ctx, connection, &results, getRandomTupleCommand}, ctx.SelectCount},
+					{UpdateRequest{ctx, connection, &results, getRandomTupleCommand}, ctx.UpdateCount}},
+				0, ctx.InsertCount}
+			connectionLoop(ctx, connection, requestsSequence, &results, backgroundCtx)
 		}(connectionPool[i])
 	}
 	// Sends "signal" to all "connectionLoop" and waits for them to complete.

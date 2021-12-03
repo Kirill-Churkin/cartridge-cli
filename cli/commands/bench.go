@@ -30,4 +30,9 @@ func init() {
 	benchCmd.Flags().IntVar(&ctx.Bench.Duration, "duration", 10, "Duration of benchmark test (seconds)")
 	benchCmd.Flags().IntVar(&ctx.Bench.KeySize, "keysize", 10, "Size of key part of benchmark data (bytes)")
 	benchCmd.Flags().IntVar(&ctx.Bench.DataSize, "datasize", 20, "Size of value part of benchmark data (bytes)")
+
+	benchCmd.Flags().IntVar(&ctx.Bench.InsertCount, "insert", 10, "")
+	benchCmd.Flags().IntVar(&ctx.Bench.SelectCount, "select", 0, "")
+	benchCmd.Flags().IntVar(&ctx.Bench.UpdateCount, "update", 0, "")
+
 }
