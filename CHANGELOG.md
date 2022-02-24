@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   rpm policy [[1](http://ftp.rpm.org/max-rpm/ch-rpm-file-format.html)]).
   For example, dashes in RPM version (like `1.2.3-0`) is no longer supported.
 
+### Added
+
+- Tarantool benchmark tool update (select and update operations)
+  * Flag "insert" - percentage of insert operations to bench space.
+  * Flag "select" - percentage of select operations from bench space.
+  * Flag "update" - percentage of update operations in bench space.
+  * Flag "fill" - number of records to pre-fill the space.
+
 ## [2.11.0] - 2022-01-26
 
 ### Changed
