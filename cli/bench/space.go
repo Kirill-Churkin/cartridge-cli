@@ -15,7 +15,10 @@ import (
 func createBenchmarkSpace(tarantoolConnection *tarantool.Connection) error {
 	// Creating space.
 	createCommand := "return box.schema.space.create(...).name"
-	_, err := tarantoolConnection.Exec(tarantool.Eval(createCommand, []interface{}{benchSpaceName, map[string]bool{"if_not_exists": true}}))
+	_, err := tarantoolConnection.Exec(tarantool.Eval(
+		createCommand,
+		[]interface{}{benchSpaceName, map[string]bool{"if_not_exists": true}},
+	))
 	if err != nil {
 		return err
 	}

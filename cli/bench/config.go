@@ -9,7 +9,7 @@ import (
 	"github.com/tarantool/cartridge-cli/cli/context"
 )
 
-var (
+const (
 	benchSpaceName             = "__benchmark_space__"
 	benchSpacePrimaryIndexName = "__bench_primary_key__"
 	PreFillingCount            = 1000000
@@ -36,4 +36,5 @@ func printConfig(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection
 	fmt.Fprintf(w, "|\t------------------------------\t|\t------------------------------\n")
 	fmt.Fprintf(w, "|\trandom(%d)\t|\trandom(%d)\n", ctx.KeySize, ctx.DataSize)
 	w.Flush()
+	fmt.Println()
 }

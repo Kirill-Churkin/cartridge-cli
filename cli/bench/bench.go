@@ -123,7 +123,8 @@ func Run(ctx context.BenchCtx) error {
 		return err
 	}
 
-	/// Сreate a "connectionPool" before starting the benchmark to exclude the connection establishment time from measurements.
+	// Сreate a "connectionPool" before starting the benchmark
+	// to exclude the connection establishment time from measurements.
 	connectionPool := make([]*tarantool.Connection, ctx.Connections)
 	for i := 0; i < ctx.Connections; i++ {
 		connectionPool[i], err = tarantool.Connect(ctx.URL, tarantool.Opts{
@@ -209,8 +210,10 @@ func Run(ctx context.BenchCtx) error {
 	results.duration = time.Since(startTime).Seconds()
 	results.requestsPerSecond = int(float64(results.handledRequestsCount) / results.duration)
 
-	dropBenchmarkSpace(tarantoolConnection)
-	fmt.Println("Benchmark stop")
+	if err := dropBenchmarkSpace(tarantoolConnection); err != nil {
+		return err
+	}
+	fmt.Println("Benchmark stop.")
 
 	printResults(results)
 	return nil
