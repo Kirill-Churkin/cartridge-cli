@@ -1,86 +1,37 @@
 package bench
 
 import (
-	bctx "context"
 	"fmt"
 	"math/rand"
-	"sync"
 	"time"
 
-	"github.com/FZambia/tarantool"
-	"github.com/tarantool/cartridge-cli/cli/common"
 	"github.com/tarantool/cartridge-cli/cli/context"
 )
-
-// printResults outputs benchmark foramatted results.
-func printResults(results Results) {
-	fmt.Printf("\nResults:\n")
-	fmt.Printf("\tSuccess operations: %d\n", results.successResultCount)
-	fmt.Printf("\tFailed  operations: %d\n", results.failedResultCount)
-	fmt.Printf("\tRequest count: %d\n", results.handledRequestsCount)
-	fmt.Printf("\tTime (seconds): %f\n", results.duration)
-	fmt.Printf("\tRequests per second: %d\n\n", results.requestsPerSecond)
-}
-
-// spacePreset prepares space for a benchmark.
-func spacePreset(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection) error {
-	dropBenchmarkSpace(tarantoolConnection)
-	return createBenchmarkSpace(tarantoolConnection)
-}
-
-// incrementRequest increases the counter of successful/failed requests depending on the presence of an error.
-func incrementRequest(err error, results *Results) {
-	if err == nil {
-		results.successResultCount++
-	} else {
-		results.failedResultCount++
-	}
-	results.handledRequestsCount++
-}
-
-// requestsLoop continuously executes the insert query until the benchmark time runs out.
-func requestsLoop(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection, results *Results, backgroundCtx bctx.Context) {
-	for {
-		select {
-		case <-backgroundCtx.Done():
-			return
-		default:
-			_, err := tarantoolConnection.Exec(
-				tarantool.Insert(
-					benchSpaceName,
-					[]interface{}{common.RandomString(ctx.KeySize), common.RandomString(ctx.DataSize)}))
-			incrementRequest(err, results)
-		}
-	}
-}
-
-// connectionLoop runs "ctx.SimultaneousRequests" requests execution threads through the same connection.
-func connectionLoop(ctx context.BenchCtx, tarantoolConnection *tarantool.Connection, results *Results, backgroundCtx bctx.Context) {
-	var connectionWait sync.WaitGroup
-	for i := 0; i < ctx.SimultaneousRequests; i++ {
-		connectionWait.Add(1)
-		go func() {
-			defer connectionWait.Done()
-			requestsLoop(ctx, tarantoolConnection, results, backgroundCtx)
-		}()
-	}
-
-	connectionWait.Wait()
-}
 
 // Main benchmark function.
 func Run(ctx context.BenchCtx) error {
 	rand.Seed(time.Now().UnixNano())
 
-	// Connect to tarantool and preset space for benchmark.
-	tarantoolConnection, err := tarantool.Connect(ctx.URL, tarantool.Opts{
-		User:     ctx.User,
-		Password: ctx.Password,
-	})
+	if err := verifyOperationsPercentage(&ctx); err != nil {
+		return err
+	}
+
+	cluster, err := isCluster(ctx)
 	if err != nil {
-		return fmt.Errorf(
-			"Couldn't connect to Tarantool %s.",
-			ctx.URL)
+		return err
+	}
+
+	if cluster {
+		if err := verifyClusterTopology(ctx); err != nil {
+			return err
+		}
+		ctx.URL = (*ctx.Leaders)[0]
+	}
+
+	// Connect to tarantool and preset space for benchmark.
+	tarantoolConnection, err := createConnection(ctx)
+	if err != nil {
+		return err
 	}
 	defer tarantoolConnection.Close()
 
@@ -90,49 +41,34 @@ func Run(ctx context.BenchCtx) error {
 		return err
 	}
 
-	/// Сreate a "connectionPool" before starting the benchmark to exclude the connection establishment time from measurements.
-	connectionPool := make([]*tarantool.Connection, ctx.Connections)
-	for i := 0; i < ctx.Connections; i++ {
-		connectionPool[i], err = tarantool.Connect(ctx.URL, tarantool.Opts{
-			User:     ctx.User,
-			Password: ctx.Password,
-		})
-		if err != nil {
-			return err
-		}
-		defer connectionPool[i].Close()
+	if err := preFillBenchmarkSpaceIfRequired(ctx); err != nil {
+		return err
 	}
 
 	fmt.Println("Benchmark start")
 	fmt.Println("...")
 
 	// The "context" will be used to stop all "connectionLoop" when the time is out.
-	backgroundCtx, cancel := bctx.WithCancel(bctx.Background())
-	var waitGroup sync.WaitGroup
-	results := Results{}
 
-	startTime := time.Now()
-	timer := time.NewTimer(time.Duration(ctx.Duration * int(time.Second)))
-
-	// Start detached connections.
-	for i := 0; i < ctx.Connections; i++ {
-		waitGroup.Add(1)
-		go func(connection *tarantool.Connection) {
-			defer waitGroup.Done()
-			connectionLoop(ctx, connection, &results, backgroundCtx)
-		}(connectionPool[i])
+	benchStart := benchOneInstance
+	if cluster {
+		benchStart = benchCluster
 	}
-	// Sends "signal" to all "connectionLoop" and waits for them to complete.
-	<-timer.C
-	cancel()
-	waitGroup.Wait()
 
-	results.duration = time.Since(startTime).Seconds()
-	results.requestsPerSecond = int(float64(results.handledRequestsCount) / results.duration)
+	benchData := getBenchData(ctx)
 
-	dropBenchmarkSpace(tarantoolConnection)
-	fmt.Println("Benchmark stop")
+	if err := benchStart(ctx, &benchData); err != nil {
+		return err
+	}
 
-	printResults(results)
+	benchData.results.duration = time.Since(benchData.startTime).Seconds()
+	benchData.results.requestsPerSecond = int(float64(benchData.results.handledRequestsCount) / benchData.results.duration)
+
+	if err := dropBenchmarkSpace(tarantoolConnection); err != nil {
+		return err
+	}
+	fmt.Println("Benchmark stop.")
+
+	printResults(benchData.results)
 	return nil
 }
