@@ -62,8 +62,7 @@ func dropBenchmarkSpace(tarantoolConnection *tarantool.Connection) error {
 	return nil
 }
 
-// fillBenchmarkSpace fills benchmark space
-// with a PreFillingCount number of records
+// fillBenchmarkSpace fills benchmark space with a PreFillingCount number of records
 // using connectionPool for fast filling.
 func fillBenchmarkSpace(ctx context.BenchCtx, connectionPool []*tarantool.Connection) (int, error) {
 	var insertMutex sync.Mutex
@@ -106,7 +105,7 @@ func fillBenchmarkSpace(ctx context.BenchCtx, connectionPool []*tarantool.Connec
 		}(connectionPool[i])
 	}
 
-	// Thread for checking error in channel.
+	// Goroutine for checking error in channel.
 	go func() {
 		for {
 			select {
@@ -114,7 +113,7 @@ func fillBenchmarkSpace(ctx context.BenchCtx, connectionPool []*tarantool.Connec
 				return
 			default:
 				if len(errorChan) > 0 {
-					// Stop "insert" threads
+					// Stop "insert" goroutines.
 					cancel()
 					return
 				}
@@ -123,12 +122,12 @@ func fillBenchmarkSpace(ctx context.BenchCtx, connectionPool []*tarantool.Connec
 	}()
 
 	waitGroup.Wait()
-	// Stop all threads
-	// If "error" thread stopped others "insert" threads, "error" thread stops itself
-	// If "insert" threads successfully completed, then need to stop "error" thread
+	// Stop all goroutines.
+	// If "error" goroutine stopped others "insert" goroutines, "error" goroutine stops itself.
+	// If "insert" goroutine successfully completed, then need to stop "error" goroutine.
 	cancel()
 
-	// Check if we have an error
+	// Check if we have an error.
 	if len(errorChan) > 0 {
 		err := <-errorChan
 		close(errorChan)
